@@ -17,11 +17,15 @@ func setupRouter() *gin.Engine {
 		api.POST("/admin/verify", VerifyAdmin)
 
 		api.GET("/image/list", GetImageList)
+		api.GET("/image/detail", GetImageDetail)
 		api.POST("/image/upload", AdminAuth(), UploadImage)
+		api.POST("/image/update", AdminAuth(), UpdateImage)
 		api.DELETE("/image/delete", AdminAuth(), DeleteImage)
 
 		api.GET("/video/list", GetVideoList)
+		api.GET("/video/detail", GetVideoDetail)
 		api.POST("/video/upload", AdminAuth(), UploadVideo)
+		api.POST("/video/update", AdminAuth(), UpdateVideo)
 		api.DELETE("/video/delete", AdminAuth(), DeleteVideo)
 	}
 
@@ -91,6 +95,36 @@ func GetVideoList(c *gin.Context) {
 	})
 }
 
+func GetImageDetail(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		Error(c, "请传入图片 id")
+		return
+	}
+
+	image, err := GetImageByIDLogic(id)
+	if err != nil {
+		Error(c, err.Error())
+		return
+	}
+	Success(c, image)
+}
+
+func GetVideoDetail(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		Error(c, "请传入视频 id")
+		return
+	}
+
+	video, err := GetVideoByIDLogic(id)
+	if err != nil {
+		Error(c, err.Error())
+		return
+	}
+	Success(c, video)
+}
+
 func UploadImage(c *gin.Context) {
 	name := strings.TrimSpace(c.PostForm("name"))
 	category := strings.TrimSpace(c.PostForm("category"))
@@ -132,6 +166,65 @@ func UploadVideo(c *gin.Context) {
 	video, err := SaveVideoLogic(file, header, cover, coverHeader, name, category)
 	if err != nil {
 		slog.Error("上传视频失败", "错误", err)
+		Error(c, err.Error())
+		return
+	}
+
+	Success(c, video)
+}
+
+func UpdateImage(c *gin.Context) {
+	id := strings.TrimSpace(c.PostForm("id"))
+	name := strings.TrimSpace(c.PostForm("name"))
+	category := strings.TrimSpace(c.PostForm("category"))
+	if id == "" {
+		Error(c, "请传入图片 id")
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		file, header = nil, nil
+	} else {
+		defer file.Close()
+	}
+
+	image, err := UpdateImageLogic(id, name, category, file, header)
+	if err != nil {
+		slog.Error("更新图片失败", "错误", err)
+		Error(c, err.Error())
+		return
+	}
+
+	Success(c, image)
+}
+
+func UpdateVideo(c *gin.Context) {
+	id := strings.TrimSpace(c.PostForm("id"))
+	name := strings.TrimSpace(c.PostForm("name"))
+	category := strings.TrimSpace(c.PostForm("category"))
+	if id == "" {
+		Error(c, "请传入视频 id")
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		file, header = nil, nil
+	} else {
+		defer file.Close()
+	}
+
+	cover, coverHeader, err := c.Request.FormFile("cover")
+	if err != nil {
+		cover, coverHeader = nil, nil
+	} else {
+		defer cover.Close()
+	}
+
+	video, err := UpdateVideoLogic(id, name, category, file, header, cover, coverHeader)
+	if err != nil {
+		slog.Error("更新视频失败", "错误", err)
 		Error(c, err.Error())
 		return
 	}
