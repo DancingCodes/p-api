@@ -2,8 +2,8 @@ package main
 
 import (
 	"log/slog"
-	"mime/multipart"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,9 +15,14 @@ func setupRouter() *gin.Engine {
 	api := r.Group("/api")
 	{
 		api.POST("/admin/verify", VerifyAdmin)
+
 		api.GET("/image/list", GetImageList)
 		api.POST("/image/upload", AdminAuth(), UploadImage)
 		api.DELETE("/image/delete", AdminAuth(), DeleteImage)
+
+		api.GET("/video/list", GetVideoList)
+		api.POST("/video/upload", AdminAuth(), UploadVideo)
+		api.DELETE("/video/delete", AdminAuth(), DeleteVideo)
 	}
 
 	return r
@@ -53,11 +58,30 @@ func AdminAuth() gin.HandlerFunc {
 func GetImageList(c *gin.Context) {
 	pageNo := c.DefaultQuery("pageNo", "1")
 	pageSize := c.DefaultQuery("pageSize", "20")
+	category := c.DefaultQuery("category", "all")
 
-	list, total, err := GetImageListLogic(pageNo, pageSize)
+	list, total, err := GetImageListLogic(pageNo, pageSize, category)
 	if err != nil {
 		slog.Error("获取图片列表失败", "错误", err)
-		Error(c, "获取列表失败")
+		Error(c, err.Error())
+		return
+	}
+
+	Success(c, gin.H{
+		"list":  list,
+		"total": total,
+	})
+}
+
+func GetVideoList(c *gin.Context) {
+	pageNo := c.DefaultQuery("pageNo", "1")
+	pageSize := c.DefaultQuery("pageSize", "20")
+	category := c.DefaultQuery("category", "all")
+
+	list, total, err := GetVideoListLogic(pageNo, pageSize, category)
+	if err != nil {
+		slog.Error("获取视频列表失败", "错误", err)
+		Error(c, err.Error())
 		return
 	}
 
@@ -68,19 +92,16 @@ func GetImageList(c *gin.Context) {
 }
 
 func UploadImage(c *gin.Context) {
+	name := strings.TrimSpace(c.PostForm("name"))
+	category := strings.TrimSpace(c.PostForm("category"))
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		Error(c, "请选择图片")
 		return
 	}
-	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
+	defer file.Close()
 
-		}
-	}(file)
-
-	image, err := SaveImageLogic(file, header)
+	image, err := SaveImageLogic(file, header, name, category)
 	if err != nil {
 		slog.Error("上传图片失败", "错误", err)
 		Error(c, err.Error())
@@ -88,6 +109,34 @@ func UploadImage(c *gin.Context) {
 	}
 
 	Success(c, image)
+}
+
+func UploadVideo(c *gin.Context) {
+	name := strings.TrimSpace(c.PostForm("name"))
+	category := strings.TrimSpace(c.PostForm("category"))
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		Error(c, "请选择视频")
+		return
+	}
+	defer file.Close()
+
+	cover, coverHeader, err := c.Request.FormFile("cover")
+	if err != nil {
+		Error(c, "请上传视频封面")
+		return
+	}
+	defer cover.Close()
+
+	video, err := SaveVideoLogic(file, header, cover, coverHeader, name, category)
+	if err != nil {
+		slog.Error("上传视频失败", "错误", err)
+		Error(c, err.Error())
+		return
+	}
+
+	Success(c, video)
 }
 
 func DeleteImage(c *gin.Context) {
@@ -99,6 +148,22 @@ func DeleteImage(c *gin.Context) {
 
 	if err := DeleteImageLogic(id); err != nil {
 		slog.Error("删除图片失败", "id", id, "错误", err)
+		Error(c, err.Error())
+		return
+	}
+
+	Success(c, nil)
+}
+
+func DeleteVideo(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		Error(c, "请传入视频 id")
+		return
+	}
+
+	if err := DeleteVideoLogic(id); err != nil {
+		slog.Error("删除视频失败", "id", id, "错误", err)
 		Error(c, err.Error())
 		return
 	}

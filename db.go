@@ -38,7 +38,7 @@ func initDB() {
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
-	if err := DB.AutoMigrate(&Image{}); err != nil {
+	if err := DB.AutoMigrate(&Image{}, &Video{}); err != nil {
 		slog.Error("数据库迁移失败", "错误", err)
 		os.Exit(1)
 	}
