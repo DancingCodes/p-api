@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"mime/multipart"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -72,7 +73,12 @@ func UploadImage(c *gin.Context) {
 		Error(c, "请选择图片")
 		return
 	}
-	defer file.Close()
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	image, err := SaveImageLogic(file, header)
 	if err != nil {

@@ -13,9 +13,9 @@ import (
 var DB *gorm.DB
 
 func initDB() {
-	dsn := os.Getenv("dbDSN")
+	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
-		slog.Error("dbDSN 未设置")
+		slog.Error("DB_DSN 未设置")
 		os.Exit(1)
 	}
 

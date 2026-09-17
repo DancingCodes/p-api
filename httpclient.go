@@ -18,25 +18,25 @@ import (
 var cosClientObj *cos.Client
 
 func initCOS() {
-	bucketURL := os.Getenv("cosBucketURL")
+	bucketURL := os.Getenv("COS_BUCKET_URL")
 	if bucketURL == "" {
-		slog.Error("cosBucketURL 未设置")
+		slog.Error("COS_BUCKET_URL 未设置")
 		os.Exit(1)
 	}
-	secretID := os.Getenv("cosSecretID")
+	secretID := os.Getenv("COS_SECRET_ID")
 	if secretID == "" {
-		slog.Error("cosSecretID 未设置")
+		slog.Error("COS_SECRET_ID 未设置")
 		os.Exit(1)
 	}
-	secretKey := os.Getenv("cosSecretKey")
+	secretKey := os.Getenv("COS_SECRET_KEY")
 	if secretKey == "" {
-		slog.Error("cosSecretKey 未设置")
+		slog.Error("COS_SECRET_KEY 未设置")
 		os.Exit(1)
 	}
 
 	u, err := url.Parse(bucketURL)
 	if err != nil {
-		slog.Error("cosBucketURL 解析失败", "错误", err)
+		slog.Error("COS_BUCKET_URL 解析失败", "错误", err)
 		os.Exit(1)
 	}
 	cosClientObj = cos.NewClient(&cos.BaseURL{BucketURL: u}, &http.Client{
@@ -49,8 +49,8 @@ func initCOS() {
 
 func UploadToCOS(file multipart.File, header *multipart.FileHeader) (string, error) {
 	ext := strings.ToLower(filepath.Ext(header.Filename))
-	cosPathPrefix := os.Getenv("cosPathPrefix")
-	objectKey := fmt.Sprintf("%s%d%s", cosPathPrefix, time.Now().UnixNano(), ext)
+	CosPathPrefix := os.Getenv("COS_PATH_PREFIX")
+	objectKey := fmt.Sprintf("%s%d%s", CosPathPrefix, time.Now().UnixNano(), ext)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -65,8 +65,8 @@ func UploadToCOS(file multipart.File, header *multipart.FileHeader) (string, err
 		return "", fmt.Errorf("COS 上传失败: %w", err)
 	}
 
-	baseURL := os.Getenv("cosBucketURL")
-	if cdn := os.Getenv("cosCDNURL"); cdn != "" {
+	baseURL := os.Getenv("COS_BUCKET_URL")
+	if cdn := os.Getenv("COS_CDN_URL"); cdn != "" {
 		baseURL = cdn
 	}
 	return baseURL + "/" + objectKey, nil
