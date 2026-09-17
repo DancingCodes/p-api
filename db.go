@@ -23,6 +23,7 @@ func initDB() {
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
+
 	if err != nil {
 		slog.Error("数据库连接失败", "错误", err)
 		os.Exit(1)
